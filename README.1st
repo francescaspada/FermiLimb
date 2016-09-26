@@ -1,0 +1,197 @@
+Earth Limb spectrum and comparison with models
+==============================================
+==========================================================================================================================================
+
+1) Data files
+-------------
+
+CntMap*.py
+==========
+Create raw counts map (exposure map is the same for any scaling!)
+- with constant energy scaling
+- with constant energy scaling and theta correction
+- with constant energy scaling, theta correction and altitude shift
+Input:
+SkimMerge.root
+Output:
+CntMapP8V6ULTRACLEANVETO_P301v1test*.root
+CntMapP8V6ULTRACLEANVETO_P301v1test*.gif
+CntMap_rawspec*.gif
+
+==========================================================================================================================================
+
+2) Kamae parameterization
+-------------------------
+
+kamae/BPLGamma.c
+================
+Create gamma spectrum from proton BPL spectrum with Kamae model (2006) *** Convolution factor ind_factor changed according to my calculation
+Input:
+BPLFitPar.txt: parameters of the proton broken power law spectrum [normalization, index1, index2, breakRig]
+(AMS p  params: 2.849, 2.716, 366.)
+(AMS He params: 2.780, 2.661, 245.) 
+Output:
+gammaspectrum*.csv 
+[* =NULL, p spectrum;
+   =Em, p spectrum with index1,2 varied -the error in AMS-02 paper, 
+   =Ep, p spectrum with index1,2 varied +the error in AMS-02 paper, 
+   =He, He spectrum]
+Use (for protons):
+Change BPLFitPar.txt parameter index1 (index1=2.849, index1[Ep]=2.855, index1[Em]=2.844)
+Change BPLFitPar.txt parameter index2 (index2=2.716, index2[Ep]=2.638, index2[Em]=2.767)
+Change output file name accordingly
+> make BPLGamma
+> ./BPLGamma
+
+[after > make clean, first > make (only), creates auxiliary files]
+
+
+kamae/gammaSpecPlot.C
+=====================
+Create gamma spectrum in the units and energy range suitable to compare with the Earth Limb data
+Input:
+gammaspectrum*.csv
+Output:
+gammaspectrum*.txt
+Use:
+root -l / .x gammaSpecPlot.C
+
+
+kamae/gammaSpecMerge.C
+======================
+Merge gamma spectrum from protons with gamma spectrum from helium fixing He contribution to gamma prod @15 GeV ~ 8.5%.
+Input:
+gammaspectrum.csv
+gammaspectrumHe.csv
+Output:
+gammaspectrumM.txt
+Use:
+root -l / .x gammaSpecMerge.C
+
+
+==========================================================================================================================================
+
+3) Ostapchenko parameterization
+-------------------------------
+
+ostap/BPLmain.f
+===============
+Create gamma spectrum from proton BPL spectrum with Ostap.-Karl. model *** Convolution factor ind_factor changed according to my calculation
+Input:
+parameters of the proton broken power law spectrum [normalization, index1, index2, breakRig]
+(AMS p  params: 2.849, 2.716, 366.)
+(AMS He params: 2.780, 2.661, 245.) 
+Output:
+p+p-gamma*.dat
+[* =NULL, p spectrum;
+   =-Em, p spectrum with index1,2 varied -the error in AMS-02 paper, 
+   =-Ep, p spectrum with index1,2 varied +the error in AMS-02 paper, 
+   =-He, He spectrum]
+Use (for protons):
+Change parameter index1 (index1=2.849, index1[Ep]=2.855, index1[Em]=2.844)
+Change parameter index2 (index2=2.716, index2[Ep]=2.638, index2[Em]=2.767)
+Change output file name accordingly
+> gfortran -o BPLmain frag.f BPLmain.f
+> ./BPLmain
+
+
+ostap/gammaSpecPlot.C
+=====================
+Create gamma spectrum in the units and energy range suitable to compare with the Earth Limb data
+Input:
+p+p-gamma*.csv
+Output:
+p+p-gamma*.txt
+Use:
+root -l / .x gammaSpecPlot.C
+
+==========================================================================================================================================
+
+4) Model comparisons
+--------------------
+
+kamae/1Tptest.c
+===============
+Create gamma spectrum from monochromatic protons with Kamae model (2006)
+Input:
+none
+Output:
+gammaspectrum-Tp1TeV.csv
+Use:
+> make 1Tptest
+> ./1Tptest
+
+[after > make clean, first > make (only), creates auxiliary files]
+
+
+ostap/1Tpmain.f
+===============
+Create gamma spectrum from monochromatic protons with Ostap.-Karl. model
+Input:
+none
+Output:
+p+p-gamma-Tp1TeV.dat
+Use:
+> gfortran -o 1Tpmain frag.f 1Tpmain.f
+> ./1Tpmain
+
+
+Tp1ComparePlot.C
+================
+Compare Kamae and Ostap monochromatic-p gamma spectra
+Input:
+gammaspectrum-Tp1TeV.csv
+p+p-gamma-Tp1TeV.dat
+Output:
+plot!
+Use:
+root -l / .x Tp1ComparePlot.C
+
+
+OKComparePlot.C
+===============
+Compare Kamae and Ostap BPL-p gamma spectra
+Input:
+gammaspectrum.csv
+p+p-gamma.dat
+Output:
+plot!
+Use:
+root -l / .x OKComparePlot.C
+
+
+==========================================================================================================================================
+
+4) Earth Limb data
+------------------
+FluxCompare.py
+==============
+Create Earth Limb spectrum from data and compare with model results
+- flux calculation taken from the 2014 Earth Limb paper (f=$(C/E) / $S / dE instead of f=$C / $(E•S) / dE)
+- diffuse BG subtraction
+Input:
+CntMap_P301v1.root: map of raw counts from the Limb solid angle 
+ExpMapP8V5SOURCE_P301v1.root: exposure map for the Limb (MC)
+gammaspectrum.txt:   Kamae model spectrum from AMS-02 proton spectrum
+gammaspectrumEp.txt: Kamae model spectrum from AMS-02 proton spectrum with index2+error
+gammaspectrumEm.txt: Kamae model spectrum from AMS-02 proton spectrum with index2-error
+Parameters: 
+thrn = zenit_theta range to use as the Limb borders
+Output: 
+plots and bias values!
+Use:
+> python -i FluxCompare.py
+
+
+FluxCompareAeffSc.py
+====================
+Cloned from FluxCompare.py with exercise of linearly scaling the Effective Area from 0% at 1 GeV to 5% at 100 GeV
+
+ScanThetaRange.py
+=================
+Modified from FluxCompare.py to scan the model/data agreement varying the theta_nadir range
+
+FluxComparePHe.py
+=================
+Modified from FluxCompare.py to compare the data agreement with model from p->gamma or He->gamma or combination of the two
+
